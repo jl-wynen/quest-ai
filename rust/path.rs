@@ -108,6 +108,7 @@ impl Path {
         }
 
         if !self.parents.contains_key(&end) {
+            println!("Failed to find path");
             return;
         }
 
@@ -138,13 +139,6 @@ impl Path {
             }
         }
     }
-
-    fn clear_path(&mut self) {
-        self.path.clear();
-        self.open_set.clear();
-        self.parents.clear();
-        self.costs.clear();
-    }
 }
 
 #[pymethods]
@@ -174,6 +168,13 @@ impl Path {
     ) -> Option<(Coord, Coord)> {
         self.next_impl(&Pos::new(current.0, current.1), world, speed, dt)
             .map(|p| (p.x, p.y))
+    }
+
+    fn clear_path(&mut self) {
+        self.path.clear();
+        self.open_set.clear();
+        self.parents.clear();
+        self.costs.clear();
     }
 }
 

@@ -25,7 +25,7 @@ class Norne(BaseAI):
         self.path = jl.Path()
         self.tick = -10
 
-        self.path.set_target((300, 100))
+        self.path.set_target((1600, 500))
 
     def run(self, t: float, dt: float, info: dict) -> None:
         self.tick += 1
@@ -35,6 +35,7 @@ class Norne(BaseAI):
 
         if self.tick % 10 == self.knight_index + 1:
             self.world.incorporate(info["local_map"], pos, view_radius)
+            self.path.clear_path()
 
         if (
             to := self.path.next(pos, self.world, speed=me["speed"], dt=dt)

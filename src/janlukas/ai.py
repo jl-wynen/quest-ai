@@ -2,8 +2,7 @@ from quest.core.ai import BaseAI
 
 from . import _janlukas as jl
 
-
-CREATOR = 'JanDerGrosse'
+CREATOR = "JanDerGrosse"
 
 
 def make_world(index: int) -> jl.World:
@@ -29,12 +28,12 @@ class Norne(BaseAI):
 
     def run(self, t: float, dt: float, info: dict):
         self.tick += 1
-        me = info['me']
-        pos = tuple(me['position'])
-        view_radius = me['view_radius']
+        me = info["me"]
+        pos = tuple(me["position"])
+        view_radius = me["view_radius"]
 
         if self.tick % 10 == self.knight_index + 1:
-            self.world.incorporate(info['local_map'], pos, view_radius)
+            self.world.incorporate(info["local_map"], pos, view_radius)
 
         if (to := self.path.next(pos, self.world, dt)) is not None:
             self.goto = to

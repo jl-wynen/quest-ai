@@ -1,9 +1,9 @@
 from functools import partial
 
 import numpy as np
-from ai import BaseAI
+from quest.core.ai import BaseAI
 
-from . import janlukasAI as jl
+from . import janlukas as jl
 
 CREATOR = 'JanDerGrosse'
 

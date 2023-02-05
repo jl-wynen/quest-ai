@@ -3,7 +3,7 @@ from functools import partial
 import numpy as np
 from quest.core.ai import BaseAI
 
-from . import janlukas as jl
+from . import _janlukas as jl
 
 CREATOR = 'JanDerGrosse'
 

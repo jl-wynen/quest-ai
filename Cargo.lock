@@ -45,7 +45,6 @@ checksum = "bfa799dd5ed20a7e349f3b4639aa80d74549c81716d9ec4f994c9b5815598306"
 name = "janlukas"
 version = "0.1.0"
 dependencies = [
- "approx",
  "nalgebra",
  "ndarray",
  "numpy",

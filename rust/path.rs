@@ -1,44 +1,26 @@
 use crate::world::{GridPos, World};
-use approx::AbsDiffEq;
 use nalgebra as na;
 use pyo3::prelude::*;
 use std::collections::{BinaryHeap, HashMap};
 
-type WorldCoord = f64;
-type WorldPos = na::Point2<WorldCoord>;
-type Coord = i32;
+type Coord = i64;
 type Pos = na::Point2<Coord>;
 
-// Treat positions as equal if they are within epsilon of each other.
-const EPSILON: f64 = 1.0;
-
-fn as_world_pos<T: na::Scalar + Into<WorldCoord> + Copy>(pos: &na::Point2<T>) -> WorldPos {
-    WorldPos::new(pos.x.into(), pos.y.into())
+#[allow(unused)]
+fn euclidean_distance(a: &Pos, b: &Pos) -> f64 {
+    use nalgebra::Norm;
+    let diff = a - b;
+    na::EuclideanNorm {}.norm(&na::Vector2::new(diff.x as f64, diff.y as f64))
 }
 
-fn snap_to_grid(pos: &WorldPos) -> Pos {
-    Pos::new(pos.x as Coord, pos.y as Coord)
-}
-
-/// Euclidean
-// fn distance(a: WorldPos, b: WorldPos) -> f64 {
-//     use nalgebra::Norm;
-//     na::EuclideanNorm{}.norm(&(a-b))
-// }
-
-/// Manhattan
-fn distance(a: &Pos, b: &Pos) -> i32 {
+#[allow(unused)]
+fn manhattan_distance(a: &Pos, b: &Pos) -> i64 {
     (a - b).sum()
-}
-
-fn are_close<T: na::Scalar + Into<WorldCoord> + Copy>(p0: &WorldPos, p1: &na::Point2<T>) -> bool {
-    // use approx::AbsDiffEq;
-    p0.abs_diff_eq(&as_world_pos(p1), EPSILON)
 }
 
 #[derive(PartialEq, Eq)]
 struct Cell {
-    cost: i32,
+    cost: i64,
     value: Pos,
 }
 
@@ -64,16 +46,16 @@ impl Ord for Cell {
 
 #[pyclass]
 struct Path {
-    target: WorldPos,
+    target: Pos,
     path: Vec<Pos>,
     open_set: BinaryHeap<Cell>,
     parents: HashMap<Pos, Pos>,
-    costs: HashMap<Pos, i32>,
+    costs: HashMap<Pos, i64>,
 }
 
 impl Path {
     fn next_impl(&mut self, current: &Pos, world: &World, dt: f64) -> Option<&Pos> {
-        if are_close(&self.target, current) {
+        if current == &self.target {
             return None;
         }
         if self.path.is_empty() {
@@ -101,14 +83,14 @@ impl Path {
             cost: 0,
         });
         self.costs.insert(*start, 0);
-        let end = snap_to_grid(&self.target);
+        let end = self.target;
 
         while let Some(Cell {
             value: current,
             cost: _,
         }) = self.open_set.pop()
         {
-            if are_close(&self.target, &current) {
+            if &self.target == &current {
                 break;
             }
 
@@ -120,7 +102,7 @@ impl Path {
                 let next_cost = self.costs.get(&neighbour);
                 if next_cost.is_none() || new_cost < *next_cost.unwrap() {
                     self.costs.insert(neighbour, new_cost);
-                    let priority = new_cost + distance(&neighbour, &end);
+                    let priority = new_cost + manhattan_distance(&neighbour, &end);
                     self.open_set.push(Cell {
                         value: neighbour,
                         cost: priority,
@@ -159,7 +141,7 @@ impl Path {
     #[new]
     fn new() -> Self {
         Self {
-            target: WorldPos::origin(),
+            target: Pos::origin(),
             path: Vec::with_capacity(32),
             open_set: BinaryHeap::with_capacity(64),
             parents: HashMap::with_capacity(32),
@@ -167,19 +149,14 @@ impl Path {
         }
     }
 
-    fn set_target(&mut self, target: (WorldCoord, WorldCoord)) {
-        self.target = WorldPos::new(target.0, target.1);
+    fn set_target(&mut self, target: (Coord, Coord)) {
+        self.target = Pos::new(target.0, target.1);
         self.clear_path();
     }
 
-    fn next(
-        &mut self,
-        current: (WorldCoord, WorldCoord),
-        world: &World,
-        dt: f64,
-    ) -> Option<(WorldCoord, WorldCoord)> {
-        self.next_impl(&Pos::new(current.0 as Coord, current.1 as Coord), world, dt)
-            .map(|p| (p.x as WorldCoord, p.y as WorldCoord))
+    fn next(&mut self, current: (Coord, Coord), world: &World, dt: f64) -> Option<(Coord, Coord)> {
+        self.next_impl(&Pos::new(current.0, current.1), world, dt)
+            .map(|p| (p.x, p.y))
     }
 }
 

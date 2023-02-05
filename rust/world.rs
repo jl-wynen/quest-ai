@@ -10,7 +10,7 @@ pub struct World {
     pub map: Array2<i64>,
 
     #[pyo3(get, set)]
-    pub enemy_flag: Option<(f64, f64)>,
+    pub enemy_flag: Option<(u64, u64)>,
 }
 
 impl World {
@@ -23,10 +23,6 @@ impl World {
         self.map
             .get((pos.x, pos.y))
             .map_or(true, |&t| t == World::OBSTACLE)
-    }
-
-    pub fn snap_to_grid(pos: na::Point2<f32>) -> GridPos {
-        GridPos::new(pos.x as usize, pos.y as usize)
     }
 
     pub fn free_neighbours_of(&self, pos: &GridPos) -> impl Iterator<Item = GridPos> {

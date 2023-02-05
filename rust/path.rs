@@ -1,4 +1,4 @@
-use crate::world::{GridPos, World};
+use crate::world::{to_grid_pos, GridPos, World};
 use nalgebra as na;
 use pyo3::prelude::*;
 use std::collections::{BinaryHeap, HashMap};
@@ -32,17 +32,9 @@ impl PartialOrd for Cell {
 
 impl Ord for Cell {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.cost.cmp(&other.cost)
+        other.cost.cmp(&self.cost)
     }
 }
-//
-// impl PartialEq for Cell {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.cost == other.cost && are_close(&self.value, &other.value)
-//     }
-// }
-
-// impl Eq for Cell {}
 
 #[pyclass]
 struct Path {
@@ -54,19 +46,19 @@ struct Path {
 }
 
 impl Path {
-    fn next_impl(&mut self, current: &Pos, world: &World, dt: f64) -> Option<&Pos> {
+    fn next_impl(&mut self, current: &Pos, world: &World, speed: f64, dt: f64) -> Option<&Pos> {
         if current == &self.target {
             return None;
         }
         if self.path.is_empty() {
-            self.find_path(current, world, dt);
+            self.find_path(current, world, speed, dt);
         }
         self.drop_until_not_at(current);
-        self.path.first()
+        self.path.last()
     }
 
     fn drop_until_not_at(&mut self, pos: &Pos) {
-        while let Some(top) = self.path.first() {
+        while let Some(top) = self.path.last() {
             if top == pos {
                 self.path.pop();
             } else {
@@ -75,8 +67,13 @@ impl Path {
         }
     }
 
-    fn find_path(&mut self, start: &Pos, world: &World, dt: f64) {
-        println!("start search {:?} {:?}", start, self.target);
+    fn find_path(&mut self, start: &Pos, world: &World, speed: f64, dt: f64) {
+        if !world.in_bounds(&to_grid_pos(self.target)) {
+            println!("Cannot find path, target is out of bounds: {}", self.target);
+            return;
+        }
+
+        println!("start search {:?} -> {:?}", start, self.target);
         self.clear_path();
         self.open_set.push(Cell {
             value: *start,
@@ -94,9 +91,7 @@ impl Path {
                 break;
             }
 
-            for neighbour in
-                world.free_neighbours_of(&GridPos::new(current.x as usize, current.y as usize))
-            {
+            for neighbour in world.free_neighbours_of(&to_grid_pos(current)) {
                 let neighbour = Pos::new(neighbour.x as Coord, neighbour.y as Coord);
                 let new_cost = self.costs[&current] + 1;
                 let next_cost = self.costs.get(&neighbour);
@@ -117,13 +112,12 @@ impl Path {
         }
 
         let mut curr = end;
-        while !curr.eq(&start) {
+        while curr != *start {
             self.path.push(curr);
             curr = self.parents[&curr];
         }
 
         self.path.push(*start);
-        self.path.reverse();
 
         println!("found path {:?}", self.path);
     }
@@ -154,8 +148,14 @@ impl Path {
         self.clear_path();
     }
 
-    fn next(&mut self, current: (Coord, Coord), world: &World, dt: f64) -> Option<(Coord, Coord)> {
-        self.next_impl(&Pos::new(current.0, current.1), world, dt)
+    fn next(
+        &mut self,
+        current: (Coord, Coord),
+        world: &World,
+        speed: f64,
+        dt: f64,
+    ) -> Option<(Coord, Coord)> {
+        self.next_impl(&Pos::new(current.0, current.1), world, speed, dt)
             .map(|p| (p.x, p.y))
     }
 }

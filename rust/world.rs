@@ -1,9 +1,13 @@
 use nalgebra as na;
-use ndarray::{s, Array2, ArrayView2, Ix2, NdIndex};
+use ndarray::{s, Array2, ArrayView2};
 use numpy::{PyArray2, ToPyArray};
 use pyo3::prelude::*;
 
 pub type GridPos = na::Point2<usize>;
+
+pub fn to_grid_pos(p: na::Point2<i64>) -> GridPos {
+    na::Point2::new(p.x as usize, p.y as usize)
+}
 
 #[pyclass(module = "janlukasAI")]
 pub struct World {
@@ -73,14 +77,18 @@ impl World {
             }
         });
     }
+
+    pub fn in_bounds(&self, pos: &GridPos) -> bool {
+        pos.x < self.map.shape()[0] && pos.y < self.map.shape()[1]
+    }
 }
 
 #[pymethods]
 impl World {
     #[new]
-    fn py_new() -> Self {
+    fn py_new(shape: (usize, usize)) -> Self {
         World {
-            map: Array2::from_elem((1792, 960), World::NO_INFO),
+            map: Array2::from_elem(shape, World::NO_INFO),
             enemy_flag: None,
         }
     }

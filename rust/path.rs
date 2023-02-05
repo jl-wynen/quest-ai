@@ -120,6 +120,23 @@ impl Path {
         self.path.push(*start);
 
         println!("found path {:?}", self.path);
+        self.smooth_path(world);
+        println!("smoothed   {:?}", self.path);
+    }
+
+    fn smooth_path(&mut self, world: &World) {
+        if self.path.len() < 3 {
+            return;
+        }
+        let mut a = *self.path.last().unwrap();
+        for i in (0..self.path.len() - 2).rev() {
+            let b = self.path[i];
+            if bresenham::path_is_blocked(&a, &b, world) {
+                a = b;
+            } else {
+                self.path.remove(i + 1);
+            }
+        }
     }
 
     fn clear_path(&mut self) {

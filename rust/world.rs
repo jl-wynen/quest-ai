@@ -26,6 +26,11 @@ impl World {
     pub fn is_obstacle(&self, pos: GridPos) -> bool {
         self.map
             .get((pos.x, pos.y))
+            .map_or(false, |&t| t == World::OBSTACLE)
+    }
+    pub fn is_obstacle_or_out(&self, pos: GridPos) -> bool {
+        self.map
+            .get((pos.x, pos.y))
             .map_or(true, |&t| t == World::OBSTACLE)
     }
 
@@ -37,7 +42,7 @@ impl World {
             GridPos::new(pos.x, pos.y + 1),
             GridPos::new(pos.x, pos.y - 1),
         ] {
-            if !self.is_obstacle(p) {
+            if !self.is_obstacle_or_out(p) {
                 res.push(p);
             }
         }

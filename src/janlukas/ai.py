@@ -36,7 +36,9 @@ class Norne(BaseAI):
         if self.tick % 10 == self.knight_index + 1:
             self.world.incorporate(info["local_map"], pos, view_radius)
 
-        if (to := self.path.next(pos, self.world, dt)) is not None:
+        if (
+            to := self.path.next(pos, self.world, speed=me["speed"], dt=dt)
+        ) is not None:
             self.goto = to
         else:
             self.stop = True

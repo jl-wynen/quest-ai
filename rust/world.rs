@@ -1,9 +1,8 @@
+use crate::pos::*;
 use nalgebra as na;
 use ndarray::{s, Array2, ArrayView2};
 use numpy::{PyArray2, ToPyArray};
 use pyo3::prelude::*;
-
-pub type GridPos = na::Point2<usize>;
 
 pub fn to_grid_pos(p: na::Point2<i64>) -> GridPos {
     na::Point2::new(p.x as usize, p.y as usize)
@@ -47,6 +46,10 @@ impl World {
             }
         }
         res.into_iter()
+    }
+
+    pub fn shape(&self) -> (usize, usize) {
+        (self.map.shape()[0], self.map.shape()[1])
     }
 }
 

@@ -63,7 +63,7 @@ def make_world() -> jl.World:
 def find_path(
     world: jl.World, start: tuple[int, int], end: tuple[int, int]
 ) -> list[tuple[int, int]]:
-    path = jl.Path()
+    path = jl.Path(world)
     path.set_target(end)
     res = [start]
     while (n := path.next(res[-1], world, speed=1.0, dt=1.0)) is not None:
@@ -71,9 +71,24 @@ def find_path(
     return res
 
 
+def path_length(path: list[tuple[int, int]]) -> float:
+    a = path[0]
+    length = 0.0
+    for b in path[1:]:
+        length += np.linalg.norm([a[0] - b[0], a[1] - b[1]])
+        a = b
+    return length
+
+
 def main() -> None:
     world = make_world()
-    path = find_path(world, (1 * 3, 8 * 3), (13 * 3, 3 * 3))
+    # 1  (A*: 51.7, theta*: 50.7)
+    # path = find_path(world, (1 * 3, 8 * 3), (13 * 3, 3 * 3))
+    # 2  (A*: 61.6, theta*: 60.7)
+    # path = find_path(world, (6, 1), (52, 22))
+    # 3  (A*: 69.8, theta*: 63.5)
+    path = find_path(world, (2, 33), (52, 13))
+    print("length", path_length(path))
 
     grid = world.get_map()
     fig, ax = plt.subplots()

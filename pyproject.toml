@@ -34,7 +34,8 @@ filterwarnings = [
 line-length = 88
 select = ["B", "E", "F", "I", "S", "T", "FBT003", "RUF100"]
 ignore = ["E741", "E742", "E743",  # do not use names ‘l’, ‘O’, or ‘I’; they are not a problem with a proper font
-          ]
+          "T201",  # print found
+         ]
 extend-exclude = [".*","__pycache__","build","dist"]
 fixable = ["I001"]
 

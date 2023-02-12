@@ -1,6 +1,8 @@
 #![allow(non_snake_case)]
 
 mod path;
+mod pos;
+mod pos_map;
 mod priority;
 mod world;
 

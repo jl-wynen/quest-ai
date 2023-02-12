@@ -22,7 +22,7 @@ class Norne(BaseAI):
             return
         self.knight_index = index
         self.world = make_world(index)
-        self.path = jl.Path()
+        self.path = jl.Path(self.world)
         self.tick = -10
 
         self.path.set_target((1600, 500))

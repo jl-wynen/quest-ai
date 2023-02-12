@@ -1,11 +1,9 @@
 use crate::path::theta_star::ThetaStar;
+use crate::pos::*;
 use crate::priority::PriorityQueue;
-use crate::world::{to_grid_pos, GridPos, World};
+use crate::world::{to_grid_pos, World};
 use nalgebra as na;
 use pyo3::prelude::*;
-
-type Coord = i64;
-type Pos = na::Point2<Coord>;
 
 #[allow(unused)]
 fn euclidean_distance(a: &Pos, b: &Pos) -> f64 {
@@ -70,11 +68,11 @@ impl Path {
 #[pymethods]
 impl Path {
     #[new]
-    fn new() -> Self {
+    fn new(world: &World) -> Self {
         Self {
             target: Pos::origin(),
             path: Vec::with_capacity(512),
-            pathfinder: ThetaStar::new(),
+            pathfinder: ThetaStar::new(world),
             recompute_in: 0,
         }
     }
@@ -111,26 +109,25 @@ pub fn bind(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
 
 mod theta_star {
     use super::*;
-    use std::collections::HashMap;
+    use crate::pos_map::PosMap;
 
-    // TODO https://www.redblobgames.com/pathfinding/a-star/implementation.html#optimize-integer-ids
     pub struct ThetaStar {
         /// Unexpanded nodes.
         /// value: node
         /// cost: cost to go to node + heuristic
         open_set: PriorityQueue<Pos, f64>,
         /// Maps node to its parent
-        parents: HashMap<Pos, Pos>,
+        parents: PosMap<Pos>,
         /// Current best cost to go to node
-        costs: HashMap<Pos, f64>,
+        costs: PosMap<f64>,
     }
 
     impl ThetaStar {
-        pub fn new() -> Self {
+        pub fn new(world: &World) -> Self {
             Self {
                 open_set: PriorityQueue::with_capacity(2 << 11),
-                parents: HashMap::with_capacity(2 << 14),
-                costs: HashMap::with_capacity(2 << 14),
+                parents: PosMap::new(world.shape(), Pos::new(-1, -1)),
+                costs: PosMap::new(world.shape(), f64::INFINITY),
             }
         }
 
@@ -147,7 +144,7 @@ mod theta_star {
 
             self.clear();
             self.open_set.push(*start, 0.0);
-            self.costs.insert(*start, 0.0);
+            self.costs.set(start, 0.0);
 
             while let Some(current) = self.open_set.pop() {
                 if target == &current {
@@ -163,30 +160,30 @@ mod theta_star {
                         continue;
                     }
 
-                    let cost = self.costs[&src] + euclidean_distance(&src, &neighbour);
-                    if cost < *self.costs.get(&neighbour).unwrap_or(&f64::INFINITY) {
+                    let cost =
+                        self.costs.get_unchecked(&src) + euclidean_distance(&src, &neighbour);
+                    if cost < self.costs.get_or(&neighbour, &f64::INFINITY) {
                         let expected_cost = cost + euclidean_distance(&neighbour, target);
                         self.open_set.push(neighbour, expected_cost);
-                        self.parents.insert(neighbour, src);
-                        self.costs.insert(neighbour, cost);
+                        self.parents.set(&neighbour, src);
+                        self.costs.set(&neighbour, cost);
                     }
                 }
             }
 
-            if !self.parents.contains_key(target) {
+            if !self.parents.is_set(target) {
                 return None;
             }
             Some(self.reconstruct_path(start, target))
         }
 
         fn source_of(&self, node: &Pos, current: &Pos, world: &World) -> Pos {
-            if self.parents.contains_key(current)
-                && !bresenham::path_is_blocked(&self.parents[current], node, world)
-            {
-                self.parents[current]
-            } else {
-                *current
+            if let Some(parent) = self.parents.get_if_set(current) {
+                if !bresenham::path_is_blocked(parent, node, world) {
+                    return *parent;
+                }
             }
+            *current
         }
 
         fn reconstruct_path(&self, start: &Pos, target: &Pos) -> Vec<Pos> {
@@ -194,7 +191,7 @@ mod theta_star {
             let mut curr = *target;
             while curr != *start {
                 path.push(curr);
-                curr = self.parents[&curr];
+                curr = self.parents.get_unchecked(&curr);
             }
             path.push(*start);
             path

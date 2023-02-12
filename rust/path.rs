@@ -1,7 +1,8 @@
+use crate::path::theta_star::ThetaStar;
+use crate::priority::PriorityQueue;
 use crate::world::{to_grid_pos, GridPos, World};
 use nalgebra as na;
 use pyo3::prelude::*;
-use std::collections::{BinaryHeap, HashMap};
 
 type Coord = i64;
 type Pos = na::Point2<Coord>;
@@ -18,31 +19,11 @@ fn manhattan_distance(a: &Pos, b: &Pos) -> i64 {
     (a - b).sum()
 }
 
-#[derive(PartialEq, Eq)]
-struct Cell {
-    cost: i64,
-    value: Pos,
-}
-
-impl PartialOrd for Cell {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for Cell {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        other.cost.cmp(&self.cost)
-    }
-}
-
 #[pyclass]
 struct Path {
     target: Pos,
     path: Vec<Pos>,
-    open_set: BinaryHeap<Cell>,
-    parents: HashMap<Pos, Pos>,
-    costs: HashMap<Pos, i64>,
+    pathfinder: ThetaStar,
 }
 
 impl Path {
@@ -68,61 +49,12 @@ impl Path {
     }
 
     fn find_path(&mut self, start: &Pos, world: &World, speed: f64, dt: f64) {
-        if !world.in_bounds(&to_grid_pos(self.target)) {
-            println!("Cannot find path, target is out of bounds: {}", self.target);
-            return;
-        }
-
-        println!("start search {:?} -> {:?}", start, self.target);
-        self.clear_path();
-        self.open_set.push(Cell {
-            value: *start,
-            cost: 0,
-        });
-        self.costs.insert(*start, 0);
-        let end = self.target;
-
-        while let Some(Cell {
-            value: current,
-            cost: _,
-        }) = self.open_set.pop()
-        {
-            if &self.target == &current {
-                break;
-            }
-
-            for neighbour in world.free_neighbours_of(&to_grid_pos(current)) {
-                let neighbour = Pos::new(neighbour.x as Coord, neighbour.y as Coord);
-                let new_cost = self.costs[&current] + 1;
-                let next_cost = self.costs.get(&neighbour);
-                if next_cost.is_none() || new_cost < *next_cost.unwrap() {
-                    self.costs.insert(neighbour, new_cost);
-                    let priority = new_cost + manhattan_distance(&neighbour, &end);
-                    self.open_set.push(Cell {
-                        value: neighbour,
-                        cost: priority,
-                    });
-                    self.parents.insert(neighbour, current);
-                }
+        match self.pathfinder.find_path(start, &self.target, world) {
+            None => {}
+            Some(path) => {
+                self.path = path;
             }
         }
-
-        if !self.parents.contains_key(&end) {
-            println!("Failed to find path");
-            return;
-        }
-
-        let mut curr = end;
-        while curr != *start {
-            self.path.push(curr);
-            curr = self.parents[&curr];
-        }
-
-        self.path.push(*start);
-
-        println!("found path {:?}", self.path);
-        self.smooth_path(world);
-        println!("smoothed   {:?}", self.path);
     }
 
     fn smooth_path(&mut self, world: &World) {
@@ -148,9 +80,7 @@ impl Path {
         Self {
             target: Pos::origin(),
             path: Vec::with_capacity(32),
-            open_set: BinaryHeap::with_capacity(64),
-            parents: HashMap::with_capacity(32),
-            costs: HashMap::with_capacity(64),
+            pathfinder: ThetaStar::new(),
         }
     }
 
@@ -172,15 +102,100 @@ impl Path {
 
     fn clear_path(&mut self) {
         self.path.clear();
-        self.open_set.clear();
-        self.parents.clear();
-        self.costs.clear();
     }
 }
 
 pub fn bind(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<Path>()?;
     Ok(())
+}
+
+mod theta_star {
+    use super::*;
+    use std::collections::HashMap;
+
+    pub struct ThetaStar {
+        open_set: PriorityQueue<Pos, f64>,
+        parents: HashMap<Pos, Pos>,
+        costs: HashMap<Pos, f64>,
+    }
+
+    impl ThetaStar {
+        pub fn new() -> Self {
+            Self {
+                open_set: PriorityQueue::with_capacity(64),
+                parents: HashMap::with_capacity(32),
+                costs: HashMap::with_capacity(64),
+            }
+        }
+
+        pub fn clear(&mut self) {
+            self.open_set.clear();
+            self.parents.clear();
+            self.costs.clear();
+        }
+
+        pub fn find_path(&mut self, start: &Pos, target: &Pos, world: &World) -> Option<Vec<Pos>> {
+            if !world.in_bounds(&to_grid_pos(*target)) {
+                println!("Cannot find path, target is out of bounds: {target}");
+                return None;
+            }
+
+            println!("start search {:?} -> {:?}", start, target);
+            self.clear();
+            self.open_set.push(*start, 0.0);
+            self.costs.insert(*start, 0.0);
+
+            while let Some(current) = self.open_set.pop() {
+                if target == &current {
+                    break;
+                }
+
+                for neighbour in world.free_neighbours_of(&to_grid_pos(current)) {
+                    let neighbour = Pos::new(neighbour.x as Coord, neighbour.y as Coord);
+                    let src = if self.parents.contains_key(&current)
+                        && !bresenham::path_is_blocked(&self.parents[&current], &neighbour, world)
+                    {
+                        &self.parents[&current]
+                    } else {
+                        &current
+                    };
+                    if &neighbour == src {
+                        continue;
+                    }
+
+                    let new_cost = euclidean_distance(src, &neighbour);
+                    let next_cost = self.costs.get(&neighbour);
+                    if next_cost.is_none() || new_cost < *next_cost.unwrap() {
+                        self.costs.insert(neighbour, new_cost);
+                        let priority = new_cost + euclidean_distance(&neighbour, target);
+                        self.open_set.push(neighbour, priority);
+                        self.parents.insert(neighbour, *src);
+                    }
+                }
+            }
+            println!("search done");
+
+            if !self.parents.contains_key(target) {
+                println!("Failed to find path");
+                return None;
+            }
+
+            Some(self.reconstruct_path(start, target))
+        }
+
+        fn reconstruct_path(&self, start: &Pos, target: &Pos) -> Vec<Pos> {
+            let mut path = Vec::with_capacity(32);
+            let mut curr = *target;
+            while curr != *start {
+                path.push(curr);
+                curr = self.parents[&curr];
+            }
+            path.push(*start);
+            println!("found path {:?}", path);
+            path
+        }
+    }
 }
 
 // Collision detection based on Bresenham's line drawing algorithm.

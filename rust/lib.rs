@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
 mod path;
+mod priority;
 mod world;
 
 use pyo3::prelude::*;

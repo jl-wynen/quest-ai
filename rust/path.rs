@@ -56,21 +56,6 @@ impl Path {
             }
         }
     }
-
-    fn smooth_path(&mut self, world: &World) {
-        if self.path.len() < 3 {
-            return;
-        }
-        let mut a = *self.path.last().unwrap();
-        for i in (0..self.path.len() - 2).rev() {
-            let b = self.path[i];
-            if bresenham::path_is_blocked(&a, &b, world) {
-                a = b;
-            } else {
-                self.path.remove(i + 1);
-            }
-        }
-    }
 }
 
 #[pymethods]
@@ -153,24 +138,18 @@ mod theta_star {
 
                 for neighbour in world.free_neighbours_of(&to_grid_pos(current)) {
                     let neighbour = Pos::new(neighbour.x as Coord, neighbour.y as Coord);
-                    let src = if self.parents.contains_key(&current)
-                        && !bresenham::path_is_blocked(&self.parents[&current], &neighbour, world)
-                    {
-                        &self.parents[&current]
-                    } else {
-                        &current
-                    };
-                    if &neighbour == src {
+                    let src = self.source_of(&neighbour, &current, world);
+                    if neighbour == src {
                         continue;
                     }
 
-                    let new_cost = euclidean_distance(src, &neighbour);
-                    let next_cost = self.costs.get(&neighbour);
-                    if next_cost.is_none() || new_cost < *next_cost.unwrap() {
+                    let new_cost = euclidean_distance(&src, &neighbour);
+                    let next_cost = *self.costs.get(&neighbour).unwrap_or(&f64::INFINITY);
+                    if new_cost < next_cost {
+                        let score = new_cost + euclidean_distance(&neighbour, target);
+                        self.open_set.push(neighbour, score);
                         self.costs.insert(neighbour, new_cost);
-                        let priority = new_cost + euclidean_distance(&neighbour, target);
-                        self.open_set.push(neighbour, priority);
-                        self.parents.insert(neighbour, *src);
+                        self.parents.insert(neighbour, src);
                     }
                 }
             }
@@ -182,6 +161,16 @@ mod theta_star {
             }
 
             Some(self.reconstruct_path(start, target))
+        }
+
+        fn source_of(&self, node: &Pos, current: &Pos, world: &World) -> Pos {
+            if self.parents.contains_key(current)
+                && !bresenham::path_is_blocked(&self.parents[current], node, world)
+            {
+                self.parents[current]
+            } else {
+                *current
+            }
         }
 
         fn reconstruct_path(&self, start: &Pos, target: &Pos) -> Vec<Pos> {

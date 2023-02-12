@@ -76,16 +76,21 @@ def main() -> None:
     path = find_path(world, (1 * 3, 8 * 3), (13 * 3, 3 * 3))
 
     grid = world.get_map()
-    plt.figure()
-    plt.imshow(grid.T[::-1])
+    fig, ax = plt.subplots()
+    ax.imshow(grid.T[::-1], interpolation="none")
 
     x = []
     y = []
     for p in path:
         x.append(p[0])
-        y.append(grid.shape[1] - p[1])
-    plt.plot(x, y, ls="-", marker=".")
+        y.append(grid.shape[1] - 1 - p[1])
+    ax.plot(x, y, ls="-", marker=".")
 
+    ax.set_xticks(np.arange(-0.5, grid.shape[0] + 0.5), minor=True)
+    ax.set_yticks(np.arange(-0.5, grid.shape[1] + 0.5), minor=True)
+    ax.grid(which="minor", color="k", linestyle="-", linewidth=0.5)
+
+    fig.tight_layout()
     plt.show()
 
 

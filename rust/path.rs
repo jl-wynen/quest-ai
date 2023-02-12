@@ -100,8 +100,13 @@ mod theta_star {
     use std::collections::HashMap;
 
     pub struct ThetaStar {
+        /// Unexpanded nodes.
+        /// value: node
+        /// cost: cost to go to node + heuristic
         open_set: PriorityQueue<Pos, f64>,
+        /// Maps node to its parent
         parents: HashMap<Pos, Pos>,
+        /// Current best cost to go to node
         costs: HashMap<Pos, f64>,
     }
 
@@ -136,20 +141,21 @@ mod theta_star {
                     break;
                 }
 
-                for neighbour in world.free_neighbours_of(&to_grid_pos(current)) {
-                    let neighbour = Pos::new(neighbour.x as Coord, neighbour.y as Coord);
+                for neighbour in world
+                    .free_neighbours_of(&to_grid_pos(current))
+                    .map(|n| Pos::new(n.x as Coord, n.y as Coord))
+                {
                     let src = self.source_of(&neighbour, &current, world);
                     if neighbour == src {
                         continue;
                     }
 
-                    let new_cost = euclidean_distance(&src, &neighbour);
-                    let next_cost = *self.costs.get(&neighbour).unwrap_or(&f64::INFINITY);
-                    if new_cost < next_cost {
-                        let score = new_cost + euclidean_distance(&neighbour, target);
-                        self.open_set.push(neighbour, score);
-                        self.costs.insert(neighbour, new_cost);
+                    let cost = self.costs[&src] + euclidean_distance(&src, &neighbour);
+                    if cost < *self.costs.get(&neighbour).unwrap_or(&f64::INFINITY) {
+                        let expected_cost = cost + euclidean_distance(&neighbour, target);
+                        self.open_set.push(neighbour, expected_cost);
                         self.parents.insert(neighbour, src);
+                        self.costs.insert(neighbour, cost);
                     }
                 }
             }

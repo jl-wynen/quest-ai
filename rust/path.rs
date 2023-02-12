@@ -210,10 +210,7 @@ mod bresenham {
 
         let mut y = p0.y;
         for x in p0.x..(p1.x + 1) {
-            if world.is_obstacle(new_grid_pos(x, y - 1))
-                || world.is_obstacle(new_grid_pos(x, y))
-                || world.is_obstacle(new_grid_pos(x, y + 1))
-            {
+            if world.is_obstacle(new_grid_pos(x, y)) {
                 return true;
             }
             if d > 0 {
@@ -236,10 +233,7 @@ mod bresenham {
 
         let mut x = p0.x;
         for y in p0.y..(p1.y + 1) {
-            if world.is_obstacle(new_grid_pos(x - 1, y))
-                || world.is_obstacle(new_grid_pos(x, y))
-                || world.is_obstacle(new_grid_pos(x + 1, y))
-            {
+            if world.is_obstacle(new_grid_pos(x, y)) {
                 return true;
             }
             if d > 0 {

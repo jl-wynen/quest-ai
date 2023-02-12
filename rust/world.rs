@@ -74,13 +74,26 @@ impl World {
         let (start_x, start_y) = local_map_start(knight_pos, view_range);
         let end_x = start_x + local_map.shape()[0];
         let end_y = start_y + local_map.shape()[1];
-
         let mut slice = self.map.slice_mut(s![start_x..end_x, start_y..end_y]);
-        slice.zip_mut_with(&local_map, |g, &l| {
-            if l != World::NO_INFO {
-                *g = l;
-            }
-        });
+
+        // Copy local_map into self.map
+        // Extrude obstacles by 1 pixel in x and y.
+        // The outer map is sliced such that indexing into `slice` with x+-1 and y+-1
+        // is always valid.
+        local_map
+            .slice(s![1..local_map.shape()[0] - 1, 1..local_map.shape()[1] - 1])
+            .indexed_iter()
+            .for_each(|((x, y), &l)| {
+                if l == World::OBSTACLE {
+                    let x = x + 1;
+                    let y = y + 1;
+                    for xx in x - 1..x + 2 {
+                        slice[(xx, y - 1)] = l;
+                        slice[(xx, y)] = l;
+                        slice[(xx, y + 1)] = l;
+                    }
+                }
+            });
     }
 
     pub fn in_bounds(&self, pos: &GridPos) -> bool {

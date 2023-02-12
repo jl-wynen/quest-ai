@@ -35,13 +35,16 @@ class Norne(BaseAI):
 
         if self.tick % 10 == self.knight_index + 1:
             self.world.incorporate(info["local_map"], pos, view_radius)
-            self.path.clear_path()
+            self.path.recompute_in_one_turn()
 
         if (
             to := self.path.next(pos, self.world, speed=me["speed"], dt=dt)
         ) is not None:
+            self.stop = False
             self.goto = to
         else:
+            t = tuple(map(int, info["flags"]["red"]))
+            self.path.set_target(t)
             self.stop = True
 
         # if self.knight_index == 0 and self.tick % 20 == 1:

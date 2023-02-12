@@ -22,8 +22,11 @@ fn manhattan_distance(a: &Pos, b: &Pos) -> i64 {
 #[pyclass]
 struct Path {
     target: Pos,
+    /// Current path in reverse order.
     path: Vec<Pos>,
     pathfinder: ThetaStar,
+    /// Recompute the path in this many calls to next.
+    recompute_in: i32,
 }
 
 impl Path {
@@ -31,6 +34,12 @@ impl Path {
         if current == &self.target {
             return None;
         }
+
+        if self.recompute_in == 0 {
+            self.path.clear();
+        }
+        self.recompute_in -= 1;
+
         if self.path.is_empty() {
             self.find_path(current, world, speed, dt);
         }
@@ -66,12 +75,13 @@ impl Path {
             target: Pos::origin(),
             path: Vec::with_capacity(512),
             pathfinder: ThetaStar::new(),
+            recompute_in: 0,
         }
     }
 
     fn set_target(&mut self, target: (Coord, Coord)) {
         self.target = Pos::new(target.0, target.1);
-        self.clear_path();
+        self.recompute_in = 0;
     }
 
     fn next(
@@ -88,6 +98,10 @@ impl Path {
     fn clear_path(&mut self) {
         self.path.clear();
     }
+
+    fn recompute_in_one_turn(&mut self) {
+        self.recompute_in = 1;
+    }
 }
 
 pub fn bind(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
@@ -99,6 +113,7 @@ mod theta_star {
     use super::*;
     use std::collections::HashMap;
 
+    // TODO https://www.redblobgames.com/pathfinding/a-star/implementation.html#optimize-integer-ids
     pub struct ThetaStar {
         /// Unexpanded nodes.
         /// value: node
@@ -127,11 +142,9 @@ mod theta_star {
 
         pub fn find_path(&mut self, start: &Pos, target: &Pos, world: &World) -> Option<Vec<Pos>> {
             if !world.in_bounds(&to_grid_pos(*target)) {
-                println!("Cannot find path, target is out of bounds: {target}");
                 return None;
             }
 
-            println!("start search {:?} -> {:?}", start, target);
             self.clear();
             self.open_set.push(*start, 0.0);
             self.costs.insert(*start, 0.0);
@@ -159,13 +172,10 @@ mod theta_star {
                     }
                 }
             }
-            println!("search done");
 
             if !self.parents.contains_key(target) {
-                println!("Failed to find path");
                 return None;
             }
-
             Some(self.reconstruct_path(start, target))
         }
 
@@ -187,7 +197,6 @@ mod theta_star {
                 curr = self.parents[&curr];
             }
             path.push(*start);
-            println!("found path {:?}", path);
             path
         }
     }

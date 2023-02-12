@@ -64,7 +64,7 @@ impl Path {
     fn new() -> Self {
         Self {
             target: Pos::origin(),
-            path: Vec::with_capacity(32),
+            path: Vec::with_capacity(512),
             pathfinder: ThetaStar::new(),
         }
     }
@@ -113,9 +113,9 @@ mod theta_star {
     impl ThetaStar {
         pub fn new() -> Self {
             Self {
-                open_set: PriorityQueue::with_capacity(64),
-                parents: HashMap::with_capacity(32),
-                costs: HashMap::with_capacity(64),
+                open_set: PriorityQueue::with_capacity(2 << 11),
+                parents: HashMap::with_capacity(2 << 14),
+                costs: HashMap::with_capacity(2 << 14),
             }
         }
 

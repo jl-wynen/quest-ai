@@ -17,19 +17,32 @@ fn manhattan_distance(a: &Pos, b: &Pos) -> i64 {
     (a - b).sum()
 }
 
+fn within_one_step(a: &WorldPos, b: &WorldPos, step_length: f64) -> bool {
+    use nalgebra::Norm;
+    na::EuclideanNorm {}.norm(&(a - b)).abs() < step_length
+}
+
 #[pyclass]
 struct Path {
+    /// Target of the path in internal coordinates.
     target: Pos,
+    /// Precise target in world coordinates.
+    world_target: WorldPos,
     /// Current path in reverse order.
-    path: Vec<Pos>,
+    path: Vec<WorldPos>,
     pathfinder: ThetaStar,
     /// Recompute the path in this many calls to next.
     recompute_in: i32,
 }
 
 impl Path {
-    fn next_impl(&mut self, current: &Pos, world: &World, speed: f64, dt: f64) -> Option<&Pos> {
-        if current == &self.target {
+    fn next_impl(
+        &mut self,
+        current: &WorldPos,
+        world: &World,
+        step_length: f64,
+    ) -> Option<&WorldPos> {
+        if within_one_step(current, &self.world_target, step_length) {
             return None;
         }
 
@@ -39,15 +52,15 @@ impl Path {
         self.recompute_in -= 1;
 
         if self.path.is_empty() {
-            self.find_path(current, world, speed, dt);
+            self.find_path(current, world);
         }
-        self.drop_until_not_at(current);
+        self.drop_until_not_at(current, step_length);
         self.path.last()
     }
 
-    fn drop_until_not_at(&mut self, pos: &Pos) {
+    fn drop_until_not_at(&mut self, pos: &WorldPos, step_length: f64) {
         while let Some(top) = self.path.last() {
-            if top == pos {
+            if within_one_step(top, pos, step_length) {
                 self.path.pop();
             } else {
                 break;
@@ -55,8 +68,11 @@ impl Path {
         }
     }
 
-    fn find_path(&mut self, start: &Pos, world: &World, speed: f64, dt: f64) {
-        match self.pathfinder.find_path(start, &self.target, world) {
+    fn find_path(&mut self, start: &WorldPos, world: &World) {
+        match self
+            .pathfinder
+            .find_path(&world.to_logical_pos(start), &self.target, world)
+        {
             None => {}
             Some(path) => {
                 self.path = path;
@@ -71,25 +87,27 @@ impl Path {
     fn new(world: &World) -> Self {
         Self {
             target: Pos::origin(),
+            world_target: WorldPos::origin(),
             path: Vec::with_capacity(512),
             pathfinder: ThetaStar::new(world),
             recompute_in: 0,
         }
     }
 
-    fn set_target(&mut self, target: (Coord, Coord)) {
-        self.target = Pos::new(target.0, target.1);
+    fn set_target(&mut self, target: (WorldCoord, WorldCoord), world: &World) {
+        self.world_target = WorldPos::new(target.0, target.1);
+        self.target = world.to_logical_pos(&self.world_target);
         self.recompute_in = 0;
     }
 
     fn next(
         &mut self,
-        current: (Coord, Coord),
+        current: (WorldCoord, WorldCoord),
         world: &World,
         speed: f64,
         dt: f64,
-    ) -> Option<(Coord, Coord)> {
-        self.next_impl(&Pos::new(current.0, current.1), world, speed, dt)
+    ) -> Option<(WorldCoord, WorldCoord)> {
+        self.next_impl(&WorldPos::new(current.0, current.1), world, speed * dt)
             .map(|p| (p.x, p.y))
     }
 
@@ -137,7 +155,12 @@ mod theta_star {
             self.costs.clear();
         }
 
-        pub fn find_path(&mut self, start: &Pos, target: &Pos, world: &World) -> Option<Vec<Pos>> {
+        pub fn find_path(
+            &mut self,
+            start: &Pos,
+            target: &Pos,
+            world: &World,
+        ) -> Option<Vec<WorldPos>> {
             if !world.in_bounds(&target.into_pos()) {
                 return None;
             }
@@ -174,7 +197,7 @@ mod theta_star {
             if !self.parents.is_set(target) {
                 return None;
             }
-            Some(self.reconstruct_path(start, target))
+            Some(self.reconstruct_path(start, target, world))
         }
 
         fn source_of(&self, node: &Pos, current: &Pos, world: &World) -> Pos {
@@ -186,14 +209,15 @@ mod theta_star {
             *current
         }
 
-        fn reconstruct_path(&self, start: &Pos, target: &Pos) -> Vec<Pos> {
+        fn reconstruct_path(&self, start: &Pos, target: &Pos, world: &World) -> Vec<WorldPos> {
             let mut path = Vec::with_capacity(32);
             let mut curr = *target;
             while curr != *start {
-                path.push(curr);
+                path.push(world.to_world_pos(&curr));
                 curr = self.parents.get_unchecked(&curr);
             }
-            path.push(*start);
+            // TODO remove?
+            path.push(world.to_world_pos(start));
             path
         }
     }

@@ -25,7 +25,7 @@ class Norne(BaseAI):
         self.path = jl.Path(self.world)
         self.tick = -10
 
-        self.path.set_target((1600, 500))
+        self.path.set_target((1600, 500), self.world)
 
     def run(self, t: float, dt: float, info: dict) -> None:
         self.tick += 1
@@ -44,7 +44,7 @@ class Norne(BaseAI):
             self.goto = to
         else:
             t = tuple(map(int, info["flags"]["red"]))
-            self.path.set_target(t)
+            self.path.set_target(t, self.world)
             self.stop = True
 
         # if self.knight_index == 0 and self.tick % 20 == 1:

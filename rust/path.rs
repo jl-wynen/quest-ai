@@ -216,8 +216,6 @@ mod theta_star {
                 path.push(world.to_world_pos(&curr));
                 curr = self.parents.get_unchecked(&curr);
             }
-            // TODO remove?
-            path.push(world.to_world_pos(start));
             path
         }
     }

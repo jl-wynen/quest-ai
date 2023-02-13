@@ -3,6 +3,9 @@ import numpy as np
 
 from janlukas.ai import jl
 
+N_REPETITIONS = 8
+SCALE = 4
+
 
 def make_world() -> jl.World:
     nx = 18
@@ -53,11 +56,14 @@ def make_world() -> jl.World:
     ):
         local_map[p] = 1
 
-    local_map = np.repeat(np.repeat(local_map, 3, axis=0), 3, axis=1)
+    nx, ny = nx * N_REPETITIONS, nx * N_REPETITIONS
+    local_map = np.repeat(
+        np.repeat(local_map, N_REPETITIONS, axis=0), N_REPETITIONS, axis=1
+    )
 
     world = jl.World(local_map.shape)
     world.incorporate(local_map, knight_pos=(nx // 2, ny // 2), view_range=max(nx, ny))
-    return world
+    return world, local_map
 
 
 def find_path(
@@ -81,24 +87,31 @@ def path_length(path: list[tuple[int, int]]) -> float:
 
 
 def main() -> None:
-    world = make_world()
+    world, actual_map = make_world()
     # 1  (A*: 51.7, theta*: 50.7)
-    # path = find_path(world, (1 * 3, 8 * 3), (13 * 3, 3 * 3))
+    path = find_path(
+        world,
+        (1 * N_REPETITIONS, 8 * N_REPETITIONS),
+        (13 * N_REPETITIONS, 3 * N_REPETITIONS),
+    )
     # 2  (A*: 61.6, theta*: 60.7)
     # path = find_path(world, (6, 1), (52, 22))
     # 3  (A*: 69.8, theta*: 63.5)
-    path = find_path(world, (2, 33), (52, 13))
+    # path = find_path(world, (2, 33), (52, 13))
+    print(path)
     print("length", path_length(path))
 
     grid = world.get_map()
+    # grid = np.repeat(np.repeat(grid, SCALE, axis=0), SCALE, axis=1)
+    # grid = actual_map
     fig, ax = plt.subplots()
     ax.imshow(grid.T[::-1], interpolation="none")
 
     x = []
     y = []
     for p in path:
-        x.append(p[0])
-        y.append(grid.shape[1] - 1 - p[1])
+        x.append(p[0] / SCALE)
+        y.append(grid.shape[1] - 1 - p[1] / SCALE)
     ax.plot(x, y, ls="-", marker=".")
 
     ax.set_xticks(np.arange(-0.5, grid.shape[0] + 0.5), minor=True)

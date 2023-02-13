@@ -9,8 +9,8 @@ pub type GridPos = na::Point2<GridCoord>;
 pub type WorldCoord = f64;
 pub type WorldPos = na::Point2<WorldCoord>;
 
-pub const WORLD_SCALE: usize = 1;
-const SCALE: Coord = WORLD_SCALE as Coord;
+pub const GRID_SCALE: usize = 4;
+const SCALE: Coord = GRID_SCALE as Coord;
 
 /// Like Into but only for positions.
 /// Allows int/float conversions not otherwise allowed by Into.
@@ -35,6 +35,18 @@ impl IntoPos<WorldPos> for Pos {
 
 impl IntoPos<Pos> for WorldPos {
     fn into_pos(self) -> Pos {
-        Pos::new(self.x as Coord / SCALE, self.y as Coord / SCALE)
+        Pos::new(
+            self.x as Coord / SCALE + SCALE / 2,
+            self.y as Coord / SCALE + SCALE / 2,
+        )
+    }
+}
+
+impl IntoPos<GridPos> for WorldPos {
+    fn into_pos(self) -> GridPos {
+        GridPos::new(
+            self.x as GridCoord / GRID_SCALE,
+            self.y as GridCoord / GRID_SCALE,
+        )
     }
 }

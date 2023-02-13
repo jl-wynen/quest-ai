@@ -76,6 +76,8 @@ impl Path {
             None => {}
             Some(path) => {
                 self.path = path;
+                // Make sure the target is precise.
+                self.path[0] = self.world_target;
             }
         }
     }

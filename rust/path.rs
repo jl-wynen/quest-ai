@@ -1,7 +1,7 @@
 use crate::path::theta_star::ThetaStar;
 use crate::pos::*;
 use crate::priority::PriorityQueue;
-use crate::world::{to_grid_pos, World};
+use crate::world::World;
 use nalgebra as na;
 use pyo3::prelude::*;
 
@@ -138,7 +138,7 @@ mod theta_star {
         }
 
         pub fn find_path(&mut self, start: &Pos, target: &Pos, world: &World) -> Option<Vec<Pos>> {
-            if !world.in_bounds(&to_grid_pos(*target)) {
+            if !world.in_bounds(&target.into_pos()) {
                 return None;
             }
 
@@ -152,7 +152,7 @@ mod theta_star {
                 }
 
                 for neighbour in world
-                    .free_neighbours_of(&to_grid_pos(current))
+                    .free_neighbours_of(&current.into_pos())
                     .map(|n| Pos::new(n.x as Coord, n.y as Coord))
                 {
                     let src = self.source_of(&neighbour, &current, world);
@@ -199,34 +199,32 @@ mod theta_star {
     }
 }
 
-// Collision detection based on Bresenham's line drawing algorithm.
+/// Collision detection based on Bresenham's line drawing algorithm.
 mod bresenham {
     use super::*;
-
-    type SGridPos = na::Point2<isize>;
 
     pub fn path_is_blocked(p0: &Pos, p1: &Pos, world: &World) -> bool {
         let d = p1 - p0;
         if d.x.abs() > d.y.abs() {
             let (p0, p1) = if p0.x > p1.x { (p1, p0) } else { (p0, p1) };
-            path_is_blocked_low(snap_to_grid(p0), snap_to_grid(p1), world)
+            path_is_blocked_low(p0, p1, world)
         } else {
             let (p0, p1) = if p0.y > p1.y { (p1, p0) } else { (p0, p1) };
-            path_is_blocked_high(snap_to_grid(p0), snap_to_grid(p1), world)
+            path_is_blocked_high(p0, p1, world)
         }
     }
 
     /// For dx > dy
-    fn path_is_blocked_low(p0: SGridPos, p1: SGridPos, world: &World) -> bool {
+    fn path_is_blocked_low(p0: &Pos, p1: &Pos, world: &World) -> bool {
         let diff = p1 - p0;
         let dx = diff.x;
         let dy = diff.y.abs();
         let mut d = 2 * dy - dx;
-        let y_increment: isize = if p0.y > p1.y { -1 } else { 1 };
+        let y_increment = if p0.y > p1.y { -1 } else { 1 };
 
         let mut y = p0.y;
         for x in p0.x..(p1.x + 1) {
-            if world.is_obstacle(new_grid_pos(x, y)) {
+            if world.is_obstacle_coords(x as usize, y as usize) {
                 return true;
             }
             if d > 0 {
@@ -240,16 +238,16 @@ mod bresenham {
     }
 
     /// For dy > dx
-    fn path_is_blocked_high(p0: SGridPos, p1: SGridPos, world: &World) -> bool {
+    fn path_is_blocked_high(p0: &Pos, p1: &Pos, world: &World) -> bool {
         let diff = p1 - p0;
         let dx = diff.x.abs();
         let dy = diff.y;
         let mut d = 2 * dx - dy;
-        let x_increment: isize = if p0.x > p1.x { -1 } else { 1 };
+        let x_increment = if p0.x > p1.x { -1 } else { 1 };
 
         let mut x = p0.x;
         for y in p0.y..(p1.y + 1) {
-            if world.is_obstacle(new_grid_pos(x, y)) {
+            if world.is_obstacle_coords(x as usize, y as usize) {
                 return true;
             }
             if d > 0 {
@@ -260,13 +258,5 @@ mod bresenham {
             }
         }
         false
-    }
-
-    fn snap_to_grid(pos: &Pos) -> SGridPos {
-        SGridPos::new(pos.x as isize, pos.y as isize)
-    }
-
-    fn new_grid_pos(x: isize, y: isize) -> GridPos {
-        GridPos::new(x as usize, y as usize)
     }
 }

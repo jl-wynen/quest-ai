@@ -1,12 +1,7 @@
 use crate::pos::*;
-use nalgebra as na;
 use ndarray::{s, Array2, ArrayView2};
 use numpy::{PyArray2, ToPyArray};
 use pyo3::prelude::*;
-
-pub fn to_grid_pos(p: na::Point2<i64>) -> GridPos {
-    na::Point2::new(p.x as usize, p.y as usize)
-}
 
 #[pyclass(module = "janlukasAI")]
 pub struct World {
@@ -17,16 +12,25 @@ pub struct World {
 }
 
 impl World {
+    #[allow(unused)]
     const EMPTY: i64 = 0;
+    #[allow(unused)]
     const OBSTACLE: i64 = 1;
+    #[allow(unused)]
     const GEM: i64 = 2;
+    #[allow(unused)]
     const NO_INFO: i64 = -1;
 
-    pub fn is_obstacle(&self, pos: GridPos) -> bool {
+    pub fn is_obstacle_coords(&self, x: GridCoord, y: GridCoord) -> bool {
         self.map
-            .get((pos.x, pos.y))
+            .get((x, y))
             .map_or(false, |&t| t == World::OBSTACLE)
     }
+
+    pub fn is_obstacle(&self, pos: GridPos) -> bool {
+        self.is_obstacle_coords(pos.x, pos.y)
+    }
+
     pub fn is_obstacle_or_out(&self, pos: GridPos) -> bool {
         self.map
             .get((pos.x, pos.y))

@@ -71,7 +71,7 @@ impl Path {
     fn find_path(&mut self, start: &WorldPos, world: &World) {
         match self
             .pathfinder
-            .find_path(&world.to_logical_pos(start), &self.target, world)
+            .find_path(&start.into_pos(), &self.target, world)
         {
             None => {}
             Some(path) => {
@@ -94,9 +94,9 @@ impl Path {
         }
     }
 
-    fn set_target(&mut self, target: (WorldCoord, WorldCoord), world: &World) {
+    fn set_target(&mut self, target: (WorldCoord, WorldCoord)) {
         self.world_target = WorldPos::new(target.0, target.1);
-        self.target = world.to_logical_pos(&self.world_target);
+        self.target = self.world_target.into_pos();
         self.recompute_in = 0;
     }
 
@@ -197,7 +197,7 @@ mod theta_star {
             if !self.parents.is_set(target) {
                 return None;
             }
-            Some(self.reconstruct_path(start, target, world))
+            Some(self.reconstruct_path(start, target))
         }
 
         fn source_of(&self, node: &Pos, current: &Pos, world: &World) -> Pos {
@@ -209,11 +209,11 @@ mod theta_star {
             *current
         }
 
-        fn reconstruct_path(&self, start: &Pos, target: &Pos, world: &World) -> Vec<WorldPos> {
+        fn reconstruct_path(&self, start: &Pos, target: &Pos) -> Vec<WorldPos> {
             let mut path = Vec::with_capacity(32);
             let mut curr = *target;
             while curr != *start {
-                path.push(world.to_world_pos(&curr));
+                path.push(curr.into_pos());
                 curr = self.parents.get_unchecked(&curr);
             }
             path

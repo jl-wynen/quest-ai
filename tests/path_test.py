@@ -10,7 +10,7 @@ def test_path_reaches_target(start, target):
         return
     world = jl.World((10, 5))
     path = jl.Path(world)
-    path.set_target(target, world)
+    path.set_target(target)
     pos = start
     for _ in range(100):
         pos = path.next(pos, world, speed=1.0, dt=1.0)
@@ -26,7 +26,7 @@ def test_path_reaches_target(start, target):
 def test_path_start_at_target_does_nothing(pos):
     world = jl.World((10, 5))
     path = jl.Path(world)
-    path.set_target(pos, world)
+    path.set_target(pos)
     assert path.next(pos, world, speed=1.0, dt=1.0) is None
 
 
@@ -37,5 +37,5 @@ def test_smoothing_on_empty_world_give_length_1_path(start, target):
         return
     world = jl.World((10, 5))
     path = jl.Path(world)
-    path.set_target(target, world)
+    path.set_target(target)
     assert path.next(start, world, speed=1.0, dt=1.0) == target

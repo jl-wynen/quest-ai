@@ -64,7 +64,7 @@ def find_path(
     world: jl.World, start: tuple[int, int], end: tuple[int, int]
 ) -> list[tuple[int, int]]:
     path = jl.Path(world)
-    path.set_target(end, world)
+    path.set_target(end)
     res = [start]
     while (n := path.next(res[-1], world, speed=1.0, dt=1.0)) is not None:
         res.append(n)

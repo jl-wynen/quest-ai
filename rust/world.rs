@@ -55,14 +55,6 @@ impl World {
     pub fn shape(&self) -> (usize, usize) {
         (self.map.shape()[0], self.map.shape()[1])
     }
-
-    pub fn to_world_pos(&self, pos: &Pos) -> WorldPos {
-        WorldPos::new(pos.x as WorldCoord, pos.y as WorldCoord)
-    }
-
-    pub fn to_logical_pos(&self, pos: &WorldPos) -> Pos {
-        Pos::new(pos.x as Coord, pos.y as Coord)
-    }
 }
 
 fn local_map_start(knight_pos: GridPos, view_range: usize) -> (usize, usize) {

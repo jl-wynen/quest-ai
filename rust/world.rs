@@ -1,7 +1,9 @@
 use crate::pos::*;
-use ndarray::{s, Array2, ArrayView2, IntoNdProducer};
+use ndarray::{s, Array2, ArrayView2};
 use numpy::{PyArray2, ToPyArray};
 use pyo3::prelude::*;
+
+const STEP_SIZE: GridCoord = 4;
 
 #[pyclass(module = "janlukasAI")]
 pub struct World {
@@ -40,10 +42,10 @@ impl World {
     pub fn free_neighbours_of(&self, pos: &GridPos) -> impl Iterator<Item = GridPos> {
         let mut res = Vec::new();
         for p in [
-            GridPos::new(pos.x + 1, pos.y),
-            GridPos::new(pos.x - 1, pos.y),
-            GridPos::new(pos.x, pos.y + 1),
-            GridPos::new(pos.x, pos.y - 1),
+            GridPos::new(pos.x + STEP_SIZE, pos.y),
+            GridPos::new(pos.x - STEP_SIZE, pos.y),
+            GridPos::new(pos.x, pos.y + STEP_SIZE),
+            GridPos::new(pos.x, pos.y - STEP_SIZE),
         ] {
             if !self.is_obstacle_or_out(p) {
                 res.push(p);
@@ -54,6 +56,14 @@ impl World {
 
     pub fn shape(&self) -> (usize, usize) {
         (self.map.shape()[0], self.map.shape()[1])
+    }
+
+    pub fn closest_on_grid(pos: &Pos) -> Pos {
+        const STEP: Coord = STEP_SIZE as Coord;
+        Pos::new(
+            pos.x / STEP * STEP + STEP / 2,
+            pos.y / STEP * STEP + STEP / 2,
+        )
     }
 }
 
@@ -79,15 +89,14 @@ impl World {
         view_range: usize,
     ) {
         let (start_x, start_y) = local_map_start(knight_pos, view_range);
-        let end_x = start_x + local_map.shape()[0] / GRID_SCALE;
-        let end_y = start_y + local_map.shape()[1] / GRID_SCALE;
+        let end_x = start_x + local_map.shape()[0];
+        let end_y = start_y + local_map.shape()[1];
         let mut slice = self.map.slice_mut(s![start_x..end_x, start_y..end_y]);
 
         // Copy local_map into self.map
         // Extrude obstacles by 1 pixel in x and y.
         // The outer map is sliced such that indexing into `slice` with x+-1 and y+-1
         // is always valid.
-        let mut extruded_local = local_map.to_owned();
         local_map
             .slice(s![1..local_map.shape()[0] - 1, 1..local_map.shape()[1] - 1])
             .indexed_iter()
@@ -96,32 +105,11 @@ impl World {
                     let x = x + 1;
                     let y = y + 1;
                     for xx in x - 1..x + 2 {
-                        extruded_local[(xx, y - 1)] = l;
-                        extruded_local[(xx, y)] = l;
-                        extruded_local[(xx, y + 1)] = l;
+                        slice[(xx, y - 1)] = l;
+                        slice[(xx, y)] = l;
+                        slice[(xx, y + 1)] = l;
                     }
                 }
-            });
-
-        // TODO this used to work?!
-        // maybe zipping is broken and it should use indexes instead
-        use ndarray::Axis;
-        local_map
-            .axis_windows(Axis(0), GRID_SCALE)
-            .into_iter()
-            .step_by(GRID_SCALE)
-            .zip(slice.rows_mut())
-            .for_each(|(row_window, mut row)| {
-                row_window
-                    .axis_windows(Axis(1), GRID_SCALE)
-                    .into_iter()
-                    .step_by(GRID_SCALE)
-                    .zip(row.iter_mut())
-                    .for_each(|(window, out)| {
-                        if window.iter().any(|&x| x == World::OBSTACLE) {
-                            *out = World::OBSTACLE;
-                        }
-                    });
             });
     }
 
@@ -134,10 +122,10 @@ impl World {
 impl World {
     #[new]
     fn py_new(shape: (usize, usize)) -> Self {
-        assert_eq!(shape.0 % GRID_SCALE, 0);
-        assert_eq!(shape.1 % GRID_SCALE, 0);
+        assert_eq!(shape.0 % STEP_SIZE, 0);
+        assert_eq!(shape.1 % STEP_SIZE, 0);
         World {
-            map: Array2::from_elem((shape.0 / GRID_SCALE, shape.1 / GRID_SCALE), World::NO_INFO),
+            map: Array2::from_elem((shape.0, shape.1), World::NO_INFO),
             enemy_flag: None,
         }
     }
@@ -156,8 +144,8 @@ impl World {
         let knight_pos = WorldPos::new(knight_pos.0, knight_pos.1);
         self.incorporate_impl(
             read_only_local_map.as_array(),
-            knight_pos.into_pos(),
-            view_range / GRID_SCALE,
+            IntoPos::<Pos>::into_pos(knight_pos).into_pos(),
+            view_range,
         );
     }
 }

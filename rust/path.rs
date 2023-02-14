@@ -69,10 +69,11 @@ impl Path {
     }
 
     fn find_path(&mut self, start: &WorldPos, world: &World) {
-        match self
-            .pathfinder
-            .find_path(&start.into_pos(), &self.target, world)
-        {
+        match self.pathfinder.find_path(
+            &World::closest_on_grid(&start.into_pos()),
+            &World::closest_on_grid(&self.target),
+            world,
+        ) {
             None => {}
             Some(path) => {
                 self.path = path;
@@ -164,6 +165,7 @@ mod theta_star {
             world: &World,
         ) -> Option<Vec<WorldPos>> {
             if !world.in_bounds(&target.into_pos()) {
+                println!("Target is out of bounds: {target}");
                 return None;
             }
 
@@ -197,6 +199,7 @@ mod theta_star {
             }
 
             if !self.parents.is_set(target) {
+                println!("Failed to find path from {start} to {target}.");
                 return None;
             }
             Some(self.reconstruct_path(start, target))

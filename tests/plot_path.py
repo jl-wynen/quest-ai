@@ -4,7 +4,6 @@ import numpy as np
 from janlukas.ai import jl
 
 N_REPETITIONS = 8
-SCALE = 4
 
 
 def make_world() -> jl.World:
@@ -86,6 +85,24 @@ def path_length(path: list[tuple[int, int]]) -> float:
     return length
 
 
+def plot(grid, path):
+    fig, ax = plt.subplots()
+    ax.imshow(grid.T[::-1], interpolation="none")
+
+    x = []
+    y = []
+    for p in path:
+        x.append(p[0])
+        y.append(grid.shape[1] - 1 - p[1])
+    ax.plot(x, y, ls="-", marker=".")
+
+    ax.set_xticks(np.arange(-0.5, grid.shape[0] + 0.5), minor=True)
+    ax.set_yticks(np.arange(-0.5, grid.shape[1] + 0.5), minor=True)
+    ax.grid(which="minor", color="k", linestyle="-", linewidth=0.5)
+
+    fig.tight_layout()
+
+
 def main() -> None:
     world, actual_map = make_world()
     # 1  (A*: 51.7, theta*: 50.7)
@@ -101,24 +118,9 @@ def main() -> None:
     print(path)
     print("length", path_length(path))
 
-    grid = world.get_map()
-    # grid = np.repeat(np.repeat(grid, SCALE, axis=0), SCALE, axis=1)
-    # grid = actual_map
-    fig, ax = plt.subplots()
-    ax.imshow(grid.T[::-1], interpolation="none")
+    plot(world.get_map(), path)
+    plot(actual_map, path)
 
-    x = []
-    y = []
-    for p in path:
-        x.append(p[0] / SCALE)
-        y.append(grid.shape[1] - 1 - p[1] / SCALE)
-    ax.plot(x, y, ls="-", marker=".")
-
-    ax.set_xticks(np.arange(-0.5, grid.shape[0] + 0.5), minor=True)
-    ax.set_yticks(np.arange(-0.5, grid.shape[1] + 0.5), minor=True)
-    ax.grid(which="minor", color="k", linestyle="-", linewidth=0.5)
-
-    fig.tight_layout()
     plt.show()
 
 

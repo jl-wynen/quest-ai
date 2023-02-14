@@ -47,11 +47,6 @@ class Norne(BaseAI):
             self.path.set_target(t)
             self.stop = True
 
-        # if self.knight_index == 0 and self.tick % 20 == 1:
-        #     import matplotlib.pyplot as plt
-        #     plt.imshow(self.world.get_map().T[::-1])
-        #     plt.show()
-
 
 class Waiter(BaseAI):
     def __init__(self, kind: str, index: int, *args, **kwargs) -> None:

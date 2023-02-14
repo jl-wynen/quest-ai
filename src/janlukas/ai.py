@@ -58,6 +58,13 @@ class Norne(BaseAI):
             self.state = self.state.reached_target()
 
 
+def get_enemy_king(info: dict) -> tuple[float, float] | None:
+    for enemy in info["enemies"]:
+        if enemy["name"] == "King":
+            return enemy["x"], enemy["y"]
+    return None
+
+
 class State(ABC):
     def __init__(self, team: str, index: int) -> None:
         self.team = team
@@ -73,11 +80,6 @@ class State(ABC):
     def make(self, cls: Type[State]) -> State:
         return cls(team=self.team, index=self.index)
 
-    def enemy_flag(self, info: dict) -> tuple[float, float] | None:
-        if (enemy_flag := info["flags"].get(ENEMY_TEAM_NAME[self.team])) is not None:
-            return tuple(enemy_flag)
-        return None
-
 
 class TravelAcross(State):
     # Indexed by team of self and knight index
@@ -91,9 +93,9 @@ class TravelAcross(State):
         self.target = TravelAcross.TARGETS[team][index]
 
     def step(self, info: dict, world: jl.World) -> tuple[State, tuple]:
-        if (enemy_flag := self.enemy_flag(info)) is not None:
-            world.enemy_flag = enemy_flag
-            return self.make(Regicide), world.enemy_flag
+        if (enemy_king := get_enemy_king(info)) is not None:
+            world.enemy_king = enemy_king
+            return self.make(Regicide), world.enemy_king
         return self, self.target
 
     def reached_target(self) -> State:
@@ -103,8 +105,8 @@ class TravelAcross(State):
 class ScanEnemyZone(State):
     # Indexed by team of self and knight index
     TARGETS = {
-        "red": ((1700, 860), (1700, 100), (1700, 480)),
-        "blue": ((100, 860), (100, 100), (100, 480)),
+        "red": ((1700, 860), (1700, 100), (1700, 100)),
+        "blue": ((100, 860), (100, 100), (100, 100)),
     }
 
     def __init__(self, team: str, index: int) -> None:
@@ -112,9 +114,9 @@ class ScanEnemyZone(State):
         self.target = ScanEnemyZone.TARGETS[team][index]
 
     def step(self, info: dict, world: jl.World) -> tuple[State, tuple]:
-        if (enemy_flag := self.enemy_flag(info)) is not None:
-            world.enemy_flag = enemy_flag
-            return self.make(Regicide), world.enemy_flag
+        if (enemy_king := get_enemy_king(info)) is not None:
+            world.enemy_king = enemy_king
+            return self.make(Regicide), world.enemy_king
         return self, self.target
 
     def reached_target(self) -> State:
@@ -123,7 +125,7 @@ class ScanEnemyZone(State):
 
 class Regicide(State):
     def step(self, info: dict, world: jl.World) -> tuple[State, tuple]:
-        return self, world.enemy_flag
+        return self, world.enemy_king
 
 
 class Waiter(BaseAI):

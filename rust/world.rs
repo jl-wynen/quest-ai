@@ -10,7 +10,7 @@ pub struct World {
     pub map: Array2<i64>,
 
     #[pyo3(get, set)]
-    pub enemy_flag: Option<(f64, f64)>,
+    pub enemy_king: Option<(f64, f64)>,
 }
 
 impl World {
@@ -126,7 +126,7 @@ impl World {
         assert_eq!(shape.1 % STEP_SIZE, 0);
         World {
             map: Array2::from_elem((shape.0, shape.1), World::NO_INFO),
-            enemy_flag: None,
+            enemy_king: None,
         }
     }
 

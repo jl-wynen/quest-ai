@@ -10,7 +10,7 @@ pub struct World {
     pub map: Array2<i64>,
 
     #[pyo3(get, set)]
-    pub enemy_flag: Option<(u64, u64)>,
+    pub enemy_flag: Option<(f64, f64)>,
 }
 
 impl World {

@@ -98,7 +98,11 @@ impl Path {
     }
 
     fn set_target(&mut self, target: (WorldCoord, WorldCoord)) {
-        self.world_target = WorldPos::new(target.0, target.1);
+        let world_target = WorldPos::new(target.0, target.1);
+        if world_target == self.world_target {
+            return;
+        }
+        self.world_target = world_target;
         self.target = self.world_target.into_pos();
         self.recompute_in = 0;
     }

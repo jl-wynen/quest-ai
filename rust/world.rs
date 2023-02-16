@@ -121,7 +121,7 @@ impl World {
 #[pymethods]
 impl World {
     #[new]
-    fn py_new(shape: (usize, usize)) -> Self {
+    pub fn new(shape: (usize, usize)) -> Self {
         assert_eq!(shape.0 % STEP_SIZE, 0);
         assert_eq!(shape.1 % STEP_SIZE, 0);
         World {

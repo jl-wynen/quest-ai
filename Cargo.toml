@@ -6,10 +6,20 @@ edition = "2021"
 [package.metadata.maturin]
 name = "janlukas._janlukas"
 
+# For Python patcka.
 [lib]
 name = "janlukas"
 path = "rust/lib.rs"
 crate-type = ["cdylib"]
+
+# For benchmark
+#[lib]
+#name = "janlukas"
+#path = "rust/lib.rs"
+#
+#[[bin]]
+#name = "path_on_empty_grid"
+#path = "benchmarks/path_on_empty_grid.rs"
 
 [dependencies]
 nalgebra = "0.32.1"
@@ -19,3 +29,4 @@ pyo3 = { version = "0.18.0", features = ["extension-module"] }
 
 [profile.release]
 lto = true
+debug = 1  # for profiling

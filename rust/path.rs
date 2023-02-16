@@ -23,7 +23,7 @@ fn within_one_step(a: &WorldPos, b: &WorldPos, step_length: f64) -> bool {
 }
 
 #[pyclass]
-struct Path {
+pub struct Path {
     /// Target of the path in internal coordinates.
     target: Pos,
     /// Precise target in world coordinates.
@@ -87,7 +87,7 @@ impl Path {
 #[pymethods]
 impl Path {
     #[new]
-    fn new(world: &World) -> Self {
+    pub fn new(world: &World) -> Self {
         Self {
             target: Pos::origin(),
             world_target: WorldPos::origin(),
@@ -97,7 +97,7 @@ impl Path {
         }
     }
 
-    fn set_target(&mut self, target: (WorldCoord, WorldCoord)) {
+    pub fn set_target(&mut self, target: (WorldCoord, WorldCoord)) {
         let world_target = WorldPos::new(target.0, target.1);
         if world_target == self.world_target {
             return;
@@ -107,7 +107,7 @@ impl Path {
         self.recompute_in = 0;
     }
 
-    fn next(
+    pub fn next(
         &mut self,
         current: (WorldCoord, WorldCoord),
         world: &World,
@@ -122,7 +122,7 @@ impl Path {
         self.path.clear();
     }
 
-    fn recompute_in_one_turn(&mut self) {
+    pub fn recompute_in_one_turn(&mut self) {
         self.recompute_in = 1;
     }
 }

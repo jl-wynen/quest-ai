@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
 
-mod path;
-mod pos;
+pub mod path;
+pub mod pos;
 mod pos_map;
 mod priority;
-mod world;
+pub mod world;
 
 use pyo3::prelude::*;
 

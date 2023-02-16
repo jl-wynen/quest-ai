@@ -32,3 +32,9 @@ impl IntoPos<Pos> for WorldPos {
         Pos::new(self.x as Coord, self.y as Coord)
     }
 }
+
+impl IntoPos<GridPos> for WorldPos {
+    fn into_pos(self) -> GridPos {
+        GridPos::new(self.x as GridCoord, self.y as GridCoord)
+    }
+}

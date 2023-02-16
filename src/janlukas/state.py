@@ -51,9 +51,64 @@ class State(ABC):
         state = self.make(cls, **kwargs)
         return state.step(info=info, world=world)
 
+    def cannot_go_there(self) -> tuple[State, tuple]:
+        return self, (896, 480)
+
 
 class Regicide(State):
     """Go directly to the enemy King and stop there."""
 
     def step(self, *, info: dict, world: jl.World) -> tuple[State, tuple]:
         return self, world.enemy_king
+
+
+class AngleGemGetter:
+    def __init__(self, tolerance) -> None:
+        self.getting_gem: tuple | None = None
+        self.tolerance = tolerance
+        self.forbidden: tuple | None = None
+
+    def get_gem(
+        self, info: dict, current_target: np.ndarray, world: jl.World
+    ) -> tuple | None:
+        if self.getting_gem is not None:
+            return self.getting_gem
+
+        gems = info["gems"]
+        if not gems:
+            return None
+
+        pos = info["me"]["position"]
+        gems = np.c_[gems["x"], gems["y"]]
+
+        v = current_target - pos
+        gv = gems - pos
+        angles = np.arccos(
+            np.dot(gv, v) / np.linalg.norm(v) / np.linalg.norm(gv, axis=1)
+        )
+        gem_index = np.argmin(angles)
+        # Limiting the distance to make sure that the world has been updated
+        # around the gem so that we don't try to walk into a wall.
+        if (
+            abs(angles[gem_index]) < self.tolerance
+            and np.linalg.norm(gems[gem_index] - pos) < 80
+        ):
+            closest_gem = gems[gem_index]
+            if self.forbidden is not None and np.array_equal(
+                closest_gem, self.forbidden
+            ):
+                return None
+            closest_gem = tuple(closest_gem)
+            if not world.is_accessible(closest_gem):
+                return None
+            self.getting_gem = closest_gem
+            return closest_gem
+
+        return None
+
+    def reached_target(self) -> None:
+        self.getting_gem = None
+
+    def cannot_go_there(self):
+        self.forbidden = self.getting_gem
+        self.getting_gem = None

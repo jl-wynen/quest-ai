@@ -1,7 +1,5 @@
-import numpy as np
-
 from . import _janlukas as jl
-from .state import Regicide, State, get_enemy_king, unstuck
+from .state import AngleGemGetter, Regicide, State, get_enemy_king, unstuck
 
 
 def rush(team: str, index: int) -> State:
@@ -18,7 +16,7 @@ class TravelAcross(State):
     def __init__(self, team: str, index: int) -> None:
         super().__init__(team=team, index=index)
         self.target = TravelAcross.TARGETS[team][index]
-        self.getting_gem: tuple | None = None
+        self.gem_getter = AngleGemGetter(tolerance=0.8)
 
     @unstuck
     def step(self, *, info: dict, world: jl.World) -> tuple[State, tuple]:
@@ -26,40 +24,23 @@ class TravelAcross(State):
             world.enemy_king = enemy_king
             return self.next_state(Regicide, info=info, world=world)
 
-        if self._get_gem(info) is not None:
-            return self, self.getting_gem
+        if (gem := self.gem_getter.get_gem(info, self.target, world)) is not None:
+            return self, gem
 
         return self, self.target
 
     def reached_target(self, *, info: dict, world: jl.World) -> State:
-        if self.getting_gem is not None:
-            self.getting_gem = None
+        if self.gem_getter.getting_gem is not None:
+            self.gem_getter.reached_target()
             return self
         return self.make(ScanEnemyZone)
 
-    def _get_gem(self, info: dict) -> tuple[State, tuple] | None:
-        if self.getting_gem is not None:
-            return self, self.getting_gem
-
-        gems = info["gems"]
-        if not gems:
-            return None
-
-        pos = info["me"]["position"]
-        gems = np.c_[gems["x"], gems["y"]]
-
-        v = self.target - pos
-        gv = gems - pos
-        angles = np.arccos(
-            np.dot(gv, v) / np.linalg.norm(v) / np.linalg.norm(gv, axis=1)
-        )
-        gem_index = np.argmin(angles)
-        if abs(angles[gem_index]) < 0.78:
-            closest_gem = gems[gem_index]
-            self.getting_gem = tuple(closest_gem)
-            return self, tuple(closest_gem)
-
-        return None
+    def cannot_go_there(self) -> tuple[State, tuple]:
+        if self.gem_getter.getting_gem is not None:
+            self.gem_getter.cannot_go_there()
+            return self, self.target
+        # just hope that this works
+        return self.make(ScanEnemyZone), self.target
 
 
 class ScanEnemyZone(State):
@@ -77,9 +58,7 @@ class ScanEnemyZone(State):
     def step(self, *, info: dict, world: jl.World) -> tuple[State, tuple]:
         if (enemy_king := get_enemy_king(world, info)) is not None:
             world.enemy_king = enemy_king
-
-            x = self.next_state(Regicide, info=info, world=world)
-            return x
+            return self.next_state(Regicide, info=info, world=world)
         return self, self.target
 
     def reached_target(self, *, info: dict, world: jl.World) -> State:

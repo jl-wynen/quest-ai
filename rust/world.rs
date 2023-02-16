@@ -146,9 +146,14 @@ impl World {
         let knight_pos = WorldPos::new(knight_pos.0, knight_pos.1);
         self.incorporate_impl(
             read_only_local_map.as_array(),
-            IntoPos::<Pos>::into_pos(knight_pos).into_pos(),
+            knight_pos.into_pos(),
             view_range,
         );
+    }
+
+    fn is_accessible(&self, pos: (WorldCoord, WorldCoord)) -> bool {
+        let pos = WorldPos::new(pos.0, pos.1);
+        !self.is_obstacle_or_out(pos.into_pos())
     }
 }
 

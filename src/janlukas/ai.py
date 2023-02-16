@@ -47,14 +47,7 @@ class Knight(BaseAI):
         self.state, target = self.state.step(info=info, world=self.world)
         self.path.set_target(target)
 
-        try:
-            to = self.path.next(pos, self.world, speed=me["speed"], dt=dt)
-        except ValueError:
-            # target out of bounds
-            to = (896, 480)
-        except RuntimeError:
-            # failed to find path
-            to = (896, 480)
+        to = self.find_path(target, pos, speed=me["speed"], dt=dt)
 
         if to is not None:
             self.stop = False
@@ -62,6 +55,24 @@ class Knight(BaseAI):
         else:
             self.stop = True
             self.state = self.state.reached_target(info=info, world=self.world)
+
+    def find_path(
+        self, target: tuple, pos: tuple, speed: float, dt: float, _iter: int = 0
+    ) -> tuple | None:
+        if _iter == 5:
+            return None  # give up
+        try:
+            return self.path.next(pos, self.world, speed=speed, dt=dt)
+        except ValueError:
+            print(f"{self.team}.{self.knight_index}: target out of bounds: {target}")
+        except RuntimeError:
+            print(
+                f"{self.team}.{self.knight_index}: "
+                f"failed to find path from {pos} to {target}"
+            )
+        self.state, target = self.state.cannot_go_there()
+        self.path.set_target(target)
+        return self.find_path(target, pos, speed, dt, _iter + 1)
 
 
 class Waiter(BaseAI):

@@ -112,3 +112,40 @@ class AngleGemGetter:
     def cannot_go_there(self):
         self.forbidden = self.getting_gem
         self.getting_gem = None
+
+
+class DistanceGemGetter:
+    def __init__(self) -> None:
+        self.getting_gem: tuple | None = None
+        self.forbidden: tuple | None = None
+
+    def get_gem(
+        self, info: dict, current_target: np.ndarray, world: jl.World
+    ) -> tuple | None:
+        if self.getting_gem is not None:
+            return self.getting_gem
+
+        gems = info["gems"]
+        if not gems:
+            return None
+
+        pos = info["me"]["position"]
+        gems = np.c_[gems["x"], gems["y"]]
+
+        distances = np.linalg.norm(gems - pos, axis=1)
+        gem_index = np.argmin(distances)
+        closest_gem = gems[gem_index]
+        if self.forbidden is not None and np.array_equal(closest_gem, self.forbidden):
+            return None
+        closest_gem = tuple(closest_gem)
+        if not world.is_accessible(closest_gem):
+            return None
+        self.getting_gem = closest_gem
+        return closest_gem
+
+    def reached_target(self) -> None:
+        self.getting_gem = None
+
+    def cannot_go_there(self):
+        self.forbidden = self.getting_gem
+        self.getting_gem = None

@@ -46,9 +46,17 @@ class Knight(BaseAI):
 
         self.state, target = self.state.step(info=info, world=self.world)
         self.path.set_target(target)
-        if (
-            to := self.path.next(pos, self.world, speed=me["speed"], dt=dt)
-        ) is not None:
+
+        try:
+            to = self.path.next(pos, self.world, speed=me["speed"], dt=dt)
+        except ValueError:
+            # target out of bounds
+            to = (896, 480)
+        except RuntimeError:
+            # failed to find path
+            to = (896, 480)
+
+        if to is not None:
             self.stop = False
             self.goto = to
         else:

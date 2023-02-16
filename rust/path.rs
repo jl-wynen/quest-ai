@@ -3,6 +3,7 @@ use crate::pos::*;
 use crate::priority::PriorityQueue;
 use crate::world::World;
 use nalgebra as na;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 
 #[allow(unused)]
@@ -41,9 +42,9 @@ impl Path {
         current: &WorldPos,
         world: &World,
         step_length: f64,
-    ) -> Option<&WorldPos> {
+    ) -> PyResult<Option<&WorldPos>> {
         if within_one_step(current, &self.world_target, step_length) {
-            return None;
+            return Ok(None);
         }
 
         if self.recompute_in == 0 {
@@ -52,10 +53,10 @@ impl Path {
         self.recompute_in -= 1;
 
         if self.path.is_empty() {
-            self.find_path(current, world);
+            self.find_path(current, world)?;
         }
         self.drop_until_not_at(current, step_length);
-        self.path.last()
+        Ok(self.path.last())
     }
 
     fn drop_until_not_at(&mut self, pos: &WorldPos, step_length: f64) {
@@ -68,12 +69,12 @@ impl Path {
         }
     }
 
-    fn find_path(&mut self, start: &WorldPos, world: &World) {
+    fn find_path(&mut self, start: &WorldPos, world: &World) -> PyResult<()> {
         match self.pathfinder.find_path(
             &World::closest_on_grid(&start.into_pos()),
             &World::closest_on_grid(&self.target),
             world,
-        ) {
+        )? {
             None => {}
             Some(path) => {
                 self.path = path;
@@ -81,6 +82,7 @@ impl Path {
                 self.path[0] = self.world_target;
             }
         }
+        Ok(())
     }
 }
 
@@ -113,9 +115,10 @@ impl Path {
         world: &World,
         speed: f64,
         dt: f64,
-    ) -> Option<(WorldCoord, WorldCoord)> {
-        self.next_impl(&WorldPos::new(current.0, current.1), world, speed * dt)
-            .map(|p| (p.x, p.y))
+    ) -> PyResult<Option<(WorldCoord, WorldCoord)>> {
+        Ok(self
+            .next_impl(&WorldPos::new(current.0, current.1), world, speed * dt)?
+            .map(|p| (p.x, p.y)))
     }
 
     fn clear_path(&mut self) {
@@ -167,10 +170,11 @@ mod theta_star {
             start: &Pos,
             target: &Pos,
             world: &World,
-        ) -> Option<Vec<WorldPos>> {
+        ) -> PyResult<Option<Vec<WorldPos>>> {
             if !world.in_bounds(&target.into_pos()) {
-                println!("Target is out of bounds: {target}");
-                return None;
+                return Err(PyValueError::new_err(format!(
+                    "Target is out of bounds: {target}"
+                )));
             }
 
             self.clear();
@@ -203,10 +207,11 @@ mod theta_star {
             }
 
             if !self.parents.is_set(target) {
-                println!("Failed to find path from {start} to {target}.");
-                return None;
+                return Err(PyRuntimeError::new_err(format!(
+                    "Failed to find path from {start} to {target}."
+                )));
             }
-            Some(self.reconstruct_path(start, target))
+            Ok(Some(self.reconstruct_path(start, target)))
         }
 
         fn source_of(&self, node: &Pos, current: &Pos, world: &World) -> Pos {

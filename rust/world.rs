@@ -98,16 +98,18 @@ impl World {
         // The outer map is sliced such that indexing into `slice` with x+-1 and y+-1
         // is always valid.
         local_map
-            .slice(s![1..local_map.shape()[0] - 1, 1..local_map.shape()[1] - 1])
+            .slice(s![2..local_map.shape()[0] - 2, 2..local_map.shape()[1] - 2])
             .indexed_iter()
             .for_each(|((x, y), &l)| {
                 if l == World::OBSTACLE {
-                    let x = x + 1;
-                    let y = y + 1;
-                    for xx in x - 1..x + 2 {
+                    let x = x + 2;
+                    let y = y + 2;
+                    for xx in x - 2..x + 3 {
+                        slice[(xx, y - 2)] = l;
                         slice[(xx, y - 1)] = l;
                         slice[(xx, y)] = l;
                         slice[(xx, y + 1)] = l;
+                        slice[(xx, y + 2)] = l;
                     }
                 }
             });

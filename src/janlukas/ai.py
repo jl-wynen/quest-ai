@@ -58,7 +58,9 @@ class Norne(BaseAI):
             self.state = self.state.reached_target()
 
 
-def get_enemy_king(info: dict) -> tuple[float, float] | None:
+def get_enemy_king(world: jl.World, info: dict) -> tuple[float, float] | None:
+    if (king := world.enemy_king) is not None:
+        return king
     for enemy in info["enemies"]:
         if enemy["name"] == "King":
             return enemy["x"], enemy["y"]
@@ -93,7 +95,7 @@ class TravelAcross(State):
         self.target = TravelAcross.TARGETS[team][index]
 
     def step(self, info: dict, world: jl.World) -> tuple[State, tuple]:
-        if (enemy_king := get_enemy_king(info)) is not None:
+        if (enemy_king := get_enemy_king(world, info)) is not None:
             world.enemy_king = enemy_king
             return self.make(Regicide), world.enemy_king
         return self, self.target
@@ -114,7 +116,7 @@ class ScanEnemyZone(State):
         self.target = ScanEnemyZone.TARGETS[team][index]
 
     def step(self, info: dict, world: jl.World) -> tuple[State, tuple]:
-        if (enemy_king := get_enemy_king(info)) is not None:
+        if (enemy_king := get_enemy_king(world, info)) is not None:
             world.enemy_king = enemy_king
             return self.make(Regicide), world.enemy_king
         return self, self.target

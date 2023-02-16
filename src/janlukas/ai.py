@@ -14,13 +14,13 @@ WORLD_SHAPE = (1792, 960)
 ENEMY_TEAM_NAME = {"red": "blue", "blue": "red"}
 
 
-def make_world(index: int) -> jl.World:
+def make_world(team: str, index: int) -> jl.World:
     if index == 0:
-        make_world.world = jl.World(WORLD_SHAPE)
-    return make_world.world
+        make_world.world[team] = jl.World(WORLD_SHAPE)
+    return make_world.world[team]
 
 
-make_world.world = None
+make_world.world = {"red": None, "blue": None}
 
 
 class Norne(BaseAI):
@@ -30,7 +30,7 @@ class Norne(BaseAI):
             return
 
         self.knight_index = index
-        self.world = make_world(index)
+        self.world = make_world(self.team, index)
         self.path = jl.Path(self.world)
         self.tick = -10
 

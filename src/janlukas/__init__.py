@@ -1,9 +1,9 @@
 from functools import partial
 
-from .ai import Norne, Waiter  # noqa: F401
+from .ai import Knight, Waiter  # noqa: F401
 
 team = {
-    "Verðandi": partial(Norne, kind="healer", index=0),
-    "Skuld": partial(Norne, kind="healer", index=1),
-    "Urðr": partial(Norne, kind="healer", index=2),
+    "Ni": partial(Knight, kind="warrior", index=0),
+    "Rabbit of Caerbannoch": partial(Knight, kind="warrior", index=1),
+    "Tim": partial(Knight, kind="healer", index=2),
 }

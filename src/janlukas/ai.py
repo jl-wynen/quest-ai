@@ -21,7 +21,7 @@ def make_world(team: str, index: int) -> jl.World:
 make_world.world = {"red": None, "blue": None}
 
 
-class Norne(BaseAI):
+class Knight(BaseAI):
     def __init__(self, kind: str, index: int, **kwargs) -> None:
         super().__init__(creator=CREATOR, kind=kind, **kwargs)
         if not kwargs:

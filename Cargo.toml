@@ -1,6 +1,6 @@
 [package]
 name = "janlukas"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 
 [package.metadata.maturin]
@@ -16,3 +16,6 @@ nalgebra = "0.32.1"
 ndarray = "0.15.6"
 numpy = "0.18.0"
 pyo3 = { version = "0.18.0", features = ["extension-module"] }
+
+[profile.release]
+lto = true

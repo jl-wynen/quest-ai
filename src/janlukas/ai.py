@@ -32,13 +32,20 @@ class Knight(BaseAI):
         self.path = jl.Path(self.world)
         self.tick = -10
 
-        self.state = rush(team=self.team, index=index)
+        self.state = None
 
     def run(self, t: float, dt: float, info: dict) -> None:
         self.tick += 1
         me = info["me"]
         pos = tuple(me["position"])
         view_radius = me["view_radius"]
+
+        if self.state is None:
+            self.state = rush(
+                team=self.team,
+                index=self.knight_index,
+                low_start=pos[1] < WORLD_SHAPE[1] // 2,
+            )
 
         if self.tick % 10 == self.knight_index + 1:
             self.world.incorporate(info["local_map"], pos, view_radius)
@@ -64,7 +71,7 @@ class Knight(BaseAI):
         try:
             return self.path.next(pos, self.world, speed=speed, dt=dt)
         except ValueError:
-            print(f"{self.team}.{self.knight_index}: target out of bounds: {target}")
+            print(f"{self.team}.{self.knight_index}: target unreachable: {target}")
         except RuntimeError:
             print(
                 f"{self.team}.{self.knight_index}: "

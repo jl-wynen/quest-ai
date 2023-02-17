@@ -25,7 +25,7 @@ class TravelAcross(State):
     def __init__(self, team: str, index: int) -> None:
         super().__init__(team=team, index=index)
         self.target = TravelAcross.TARGETS[team][index]
-        self.gem_getter = AngleGemGetter(tolerance=0.8)
+        self.gem_getter = AngleGemGetter(tolerance=0.2 if index == 0 else 0.8)
 
     @unstuck
     def step(self, *, info: dict, world: jl.World) -> tuple[State, tuple]:
@@ -33,9 +33,8 @@ class TravelAcross(State):
             world.enemy_king = enemy_king
             return self.next_state(Regicide, info=info, world=world)
 
-        if self.index != 0:
-            if (gem := self.gem_getter.get_gem(info, self.target, world)) is not None:
-                return self, gem
+        if (gem := self.gem_getter.get_gem(info, self.target, world)) is not None:
+            return self, gem
 
         return self, self.target
 

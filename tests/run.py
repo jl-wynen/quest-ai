@@ -11,8 +11,10 @@ from janlukas import team as JanLukasTeam
 
 
 def main() -> None:
-    random.seed(123)
-    np.random.seed(9982)
+    # random.seed(123)
+    # np.random.seed(9982)
+    random.seed(3)
+    np.random.seed(3)
 
     match = Match(
         # red_team=make_team(TemplateTeam),

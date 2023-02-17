@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 from quest.core.ai import BaseAI
 
 from . import _janlukas as jl
@@ -35,6 +36,8 @@ class Knight(BaseAI):
         self.state = None
 
     def run(self, t: float, dt: float, info: dict) -> None:
+        self._handle_messages(info["friends"])
+
         self.tick += 1
         me = info["me"]
         pos = tuple(me["position"])
@@ -81,6 +84,17 @@ class Knight(BaseAI):
         self.path.set_target(target)
         return self.find_path(target, pos, speed, dt, _iter + 1)
 
+    def _handle_messages(self, friends: list[dict]) -> None:
+        for friend in friends:
+            if (king := _parse_messages(friend["message"])) is not None:
+                if (self.team == "red" and king[0] > WORLD_SHAPE[1] // 2) or (
+                    self.team == "blue" and king[0] < WORLD_SHAPE[0] // 2
+                ):
+                    self.world.enemy_king = king
+
+            if (king := self.world.enemy_king) is not None:
+                self.message = {"king": king}
+
 
 class Waiter(BaseAI):
     def __init__(self, kind: str, index: int, *args, **kwargs) -> None:
@@ -92,3 +106,34 @@ class Waiter(BaseAI):
 
     def run(self, t: float, dt: float, info: dict) -> None:
         self.stop = True
+
+
+def _parse_messages(message) -> tuple | None:
+    if message is None:
+        return None
+    if (king := _get_king_message(message)) is not None:
+        if isinstance(king, (tuple, list)) and len(king) == 2:
+            return float(king[0]), float(king[1])
+        if isinstance(king, np.ndarray) and king.shape == (2,):
+            return float(king[0]), float(king[1])
+
+    return None
+
+
+def _get_king_message(message):
+    if isinstance(message, dict):
+        for k in (
+            "enemy_king",
+            "enemy king",
+            "enemy-king",
+            "king",
+            "enemy_flag",
+            "enemy flag",
+            "enemy-flag",
+            "flag",
+        ):
+            if (king := message.get(k)) is not None:
+                return king
+    elif isinstance(message, (tuple, list, np.ndarray)):
+        return message
+    return None

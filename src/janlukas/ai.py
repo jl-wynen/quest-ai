@@ -74,12 +74,14 @@ class Knight(BaseAI):
         try:
             return self.path.next(pos, self.world, speed=speed, dt=dt)
         except ValueError:
-            print(f"{self.team}.{self.knight_index}: target unreachable: {target}")
+            # print(f"{self.team}.{self.knight_index}: target unreachable: {target}")
+            pass
         except RuntimeError:
-            print(
-                f"{self.team}.{self.knight_index}: "
-                f"failed to find path from {pos} to {target}"
-            )
+            # print(
+            #     f"{self.team}.{self.knight_index}: "
+            #     f"failed to find path from {pos} to {target}"
+            # )
+            pass
         self.state, target = self.state.cannot_go_there()
         self.path.set_target(target)
         return self.find_path(target, pos, speed, dt, _iter + 1)

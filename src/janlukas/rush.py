@@ -86,7 +86,6 @@ class ScanEnemyZone(State):
                 self.target = ScanEnemyZone.TARGET_HIGH[team]
             else:
                 self.target = ScanEnemyZone.TARGET_LOW[team]
-        print("SCANE", self.index, low_start, self.target)
 
     @unstuck
     def step(self, *, info: dict, world: jl.World) -> tuple[State, tuple]:

@@ -18,7 +18,7 @@ jobs:
       with:
         target: x86_64
         manylinux: auto
-        args: --release --out dist
+        args: --release --out dist -i python3.10
     - uses: actions/upload-artifact@v2
       with:
         name: wheels

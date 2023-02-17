@@ -89,10 +89,7 @@ class AngleGemGetter:
         gem_index = np.argmin(angles)
         # Limiting the distance to make sure that the world has been updated
         # around the gem so that we don't try to walk into a wall.
-        if (
-            abs(angles[gem_index]) < self.tolerance
-            and np.linalg.norm(gems[gem_index] - pos) < 80
-        ):
+        if abs(angles[gem_index]) < self.tolerance:
             closest_gem = gems[gem_index]
             if self.forbidden is not None and np.array_equal(
                 closest_gem, self.forbidden

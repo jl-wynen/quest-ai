@@ -171,9 +171,9 @@ mod theta_star {
             target: &Pos,
             world: &World,
         ) -> PyResult<Option<Vec<WorldPos>>> {
-            if !world.in_bounds(&target.into_pos()) {
+            if world.is_obstacle_or_out(target.into_pos()) {
                 return Err(PyValueError::new_err(format!(
-                    "Target is out of bounds: {target}"
+                    "Target is not accessible: {target}"
                 )));
             }
 

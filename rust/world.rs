@@ -3,7 +3,7 @@ use ndarray::{s, Array2, ArrayView2};
 use numpy::{PyArray2, ToPyArray};
 use pyo3::prelude::*;
 
-const STEP_SIZE: GridCoord = 4;
+const STEP_SIZE: GridCoord = 1;
 
 #[pyclass(module = "janlukasAI")]
 pub struct World {

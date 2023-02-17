@@ -112,6 +112,7 @@ class CollectGems(State):
         super().__init__(team=team, index=index)
         self.gem_getter = DistanceGemGetter()
         self.target = CollectGems.GENERAL_TARGET[team][low_start]
+        self.low_start = low_start
 
     @unstuck
     def step(self, *, info: dict, world: jl.World) -> tuple[State, tuple]:
@@ -135,4 +136,4 @@ class CollectGems(State):
             self.gem_getter.cannot_go_there()
             return self, self.target
         # just hope that this works
-        return self.make(ScanEnemyZone), self.target
+        return self.make(ScanEnemyZone, low_start=self.low_start), self.target
